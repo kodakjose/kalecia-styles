@@ -1,5 +1,20 @@
-console.log('Kalecia Styles website is active.');
+
+// Simulate cart functionality
+let cart = [];
+
+function addToCart(productName, price) {
+  cart.push({ name: productName, price });
+  alert(`${productName} added to cart!`);
+  updateCartCount();
+}
+
+function updateCartCount() {
+  const countElement = document.getElementById("cart-count");
+  if (countElement) {
+    countElement.innerText = cart.length;
+  }
+}
 
 window.onload = () => {
-  document.querySelector('header').style.borderBottom = '4px solid #f7c948';
+  updateCartCount();
 };
