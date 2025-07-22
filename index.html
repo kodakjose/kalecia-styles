@@ -69,6 +69,13 @@
       </div>
     </section>
 
+    <section id="cart-section" class="cart-section" style="display: none;">
+      <h2>Your Cart</h2>
+      <div id="cart-items"></div>
+      <div class="cart-total">Total: $<span id="cart-total">0.00</span></div>
+      <button class="checkout-button" onclick="checkout()">Place Order</button>
+    </section>
+
     <section id="orders-section" class="orders-section" style="display: none;">
       <h2>Customer Orders</h2>
       <div id="orders-list"></div>
@@ -78,7 +85,7 @@
   <script type="module">
     import { initializeApp } from "https://www.gstatic.com/firebasejs/9.6.1/firebase-app.js";
     import { getAuth, createUserWithEmailAndPassword, signInWithEmailAndPassword, signOut, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/9.6.1/firebase-auth.js";
-    import { getFirestore, collection, addDoc, getDocs, serverTimestamp, doc, getDoc, query, orderBy } from "https://www.gstatic.com/firebasejs/9.6.1/firebase-firestore.js";
+    import { getFirestore, collection, addDoc, getDocs, serverTimestamp, query, orderBy } from "https://www.gstatic.com/firebasejs/9.6.1/firebase-firestore.js";
 
     const firebaseConfig = {
       apiKey: "AIzaSyA8ZFMWYXosLhPP6gvvD0JG9EV_dfC7zmw",
@@ -93,7 +100,7 @@
     const auth = getAuth();
     const db = getFirestore(app);
 
-    let cart = [];
+    let cart = JSON.parse(localStorage.getItem('cart')) || [];
     let currentUser = null;
 
     function showProfile() {
@@ -106,17 +113,49 @@
     }
 
     function showCart() {
-      alert("Cart page coming soon");
+      document.querySelectorAll('section').forEach(sec => sec.style.display = 'none');
+      document.getElementById('cart-section').style.display = 'block';
+      const container = document.getElementById("cart-items");
+      container.innerHTML = "";
+      let total = 0;
+      cart.forEach((item, i) => {
+        const div = document.createElement("div");
+        div.className = "cart-item";
+        div.innerHTML = `<span>${item.name}</span><span>$${item.price.toFixed(2)}</span>`;
+        container.appendChild(div);
+        total += item.price;
+      });
+      document.getElementById("cart-total").innerText = total.toFixed(2);
     }
 
     function addToCart(item) {
       cart.push(item);
+      localStorage.setItem('cart', JSON.stringify(cart));
       alert(`${item.name} added to cart.`);
       updateCartCount();
     }
 
     function updateCartCount() {
       document.getElementById('cart-count').innerText = cart.length;
+    }
+
+    function checkout() {
+      if (!currentUser) {
+        alert("Please login to place order");
+        return;
+      }
+      addDoc(collection(db, "orders"), {
+        userId: currentUser.email,
+        items: cart,
+        status: "pending",
+        timestamp: serverTimestamp()
+      }).then(() => {
+        alert("Order placed!");
+        cart = [];
+        localStorage.removeItem('cart');
+        updateCartCount();
+        showProducts();
+      });
     }
 
     function showOrders() {
@@ -159,7 +198,9 @@
       if (user) {
         currentUser = user;
         document.getElementById('auth-section').style.display = 'none';
-        document.getElementById('admin-orders-btn').style.display = 'inline-block';
+        if (user.email === 'admin@example.com') {
+          document.getElementById('admin-orders-btn').style.display = 'inline-block';
+        }
       } else {
         currentUser = null;
         document.getElementById('auth-section').style.display = 'block';
@@ -168,6 +209,7 @@
     });
 
     window.onload = () => {
+      updateCartCount();
       showProducts();
       document.getElementById('auth-section').style.display = 'block';
     };
