@@ -1,15 +1,14 @@
-<!-- Updated HTML with Firebase Auth UI -->
+<!-- Updated HTML with Firestore Admin Authentication -->
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
   <title>Kalecia Styles</title>
   <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-app.js"></script>
   <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-auth.js"></script>
   <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-firestore.js"></script>
   <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-storage.js"></script>
-  <script src="https://cdn.jsdelivr.net/npm/emailjs-com@2/dist/email.min.js"></script>
   <style>
     body { font-family: Arial, sans-serif; margin: 0; padding: 0; background: #fff; color: #222; }
     header { background-color: #111; color: #f7c948; padding: 20px; text-align: center; font-size: 24px; font-weight: bold; }
@@ -17,16 +16,10 @@
     nav button { margin: 0 5px; padding: 8px 12px; background: #f7c948; border: none; cursor: pointer; }
     .container { padding: 20px; }
     .profile-section, .product-section, .cart-section, .checkout-section, .orders-section { margin: 20px 0; padding: 20px; border: 1px solid #ccc; max-width: 800px; }
-    .profile-section input[type="text"], .profile-section input[type="email"] { width: 100%; padding: 10px; margin-bottom: 10px; }
-    .profile-section button { padding: 10px 20px; background: #111; color: #fff; border: none; cursor: pointer; }
     .products-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 20px; }
     .product-card { border: 1px solid #ccc; padding: 10px; text-align: center; }
     .product-card img { width: 100%; height: 150px; object-fit: cover; }
-    .product-card h4, .product-card p { margin: 10px 0; }
-    .product-card button { padding: 6px 12px; background-color: #28a745; color: white; border: none; cursor: pointer; }
-    .filter-buttons button { margin-right: 10px; }
     .cart-item { display: flex; justify-content: space-between; padding: 8px 0; border-bottom: 1px solid #ddd; }
-    .cart-item span { flex: 1; }
     .cart-total { font-weight: bold; text-align: right; margin-top: 10px; }
     .checkout-button { padding: 10px 20px; background-color: #007bff; color: white; border: none; cursor: pointer; margin-top: 10px; }
   </style>
@@ -34,14 +27,12 @@
 <body>
   <header>Kalecia Styles</header>
   <nav>
-    <button onclick="showProfile()">Profile</button>
     <button onclick="showProducts()">Shop</button>
     <button onclick="showCart()">Cart (<span id="cart-count">0</span>)</button>
     <button id="admin-orders-btn" style="display:none" onclick="showOrders()">Orders</button>
   </nav>
 
-  <!-- Auth UI -->
-  <div id="auth-section" style="display: none; padding: 20px;">
+  <div id="auth-section" style="padding: 20px;">
     <h3>Login or Register</h3>
     <input type="email" id="email" placeholder="Email" /><br><br>
     <input type="password" id="password" placeholder="Password" /><br><br>
@@ -85,7 +76,7 @@
   <script type="module">
     import { initializeApp } from "https://www.gstatic.com/firebasejs/9.6.1/firebase-app.js";
     import { getAuth, createUserWithEmailAndPassword, signInWithEmailAndPassword, signOut, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/9.6.1/firebase-auth.js";
-    import { getFirestore, collection, addDoc, getDocs, serverTimestamp, query, orderBy } from "https://www.gstatic.com/firebasejs/9.6.1/firebase-firestore.js";
+    import { getFirestore, collection, addDoc, getDocs, serverTimestamp, query, orderBy, doc, getDoc } from "https://www.gstatic.com/firebasejs/9.6.1/firebase-firestore.js";
 
     const firebaseConfig = {
       apiKey: "AIzaSyA8ZFMWYXosLhPP6gvvD0JG9EV_dfC7zmw",
@@ -99,26 +90,21 @@
     const app = initializeApp(firebaseConfig);
     const auth = getAuth();
     const db = getFirestore(app);
-
     let cart = JSON.parse(localStorage.getItem('cart')) || [];
     let currentUser = null;
 
-    function showProfile() {
-      document.querySelectorAll('section').forEach(sec => sec.style.display = 'none');
-    }
-
     function showProducts() {
-      document.querySelectorAll('section').forEach(sec => sec.style.display = 'none');
+      hideAllSections();
       document.getElementById('products-section').style.display = 'block';
     }
 
     function showCart() {
-      document.querySelectorAll('section').forEach(sec => sec.style.display = 'none');
+      hideAllSections();
       document.getElementById('cart-section').style.display = 'block';
       const container = document.getElementById("cart-items");
       container.innerHTML = "";
       let total = 0;
-      cart.forEach((item, i) => {
+      cart.forEach((item) => {
         const div = document.createElement("div");
         div.className = "cart-item";
         div.innerHTML = `<span>${item.name}</span><span>$${item.price.toFixed(2)}</span>`;
@@ -128,11 +114,15 @@
       document.getElementById("cart-total").innerText = total.toFixed(2);
     }
 
+    function hideAllSections() {
+      document.querySelectorAll('section').forEach(sec => sec.style.display = 'none');
+    }
+
     function addToCart(item) {
       cart.push(item);
       localStorage.setItem('cart', JSON.stringify(cart));
-      alert(`${item.name} added to cart.`);
       updateCartCount();
+      alert(`${item.name} added to cart.`);
     }
 
     function updateCartCount() {
@@ -140,10 +130,7 @@
     }
 
     function checkout() {
-      if (!currentUser) {
-        alert("Please login to place order");
-        return;
-      }
+      if (!currentUser) return alert("Please log in to place an order.");
       addDoc(collection(db, "orders"), {
         userId: currentUser.email,
         items: cart,
@@ -159,7 +146,7 @@
     }
 
     function showOrders() {
-      document.querySelectorAll('section').forEach(sec => sec.style.display = 'none');
+      hideAllSections();
       document.getElementById('orders-section').style.display = 'block';
       const ordersQuery = query(collection(db, "orders"), orderBy("timestamp", "desc"));
       getDocs(ordersQuery).then(snapshot => {
@@ -194,12 +181,17 @@
       signOut(auth).then(() => alert("Logged out"));
     }
 
-    onAuthStateChanged(auth, (user) => {
+    onAuthStateChanged(auth, async (user) => {
       if (user) {
         currentUser = user;
         document.getElementById('auth-section').style.display = 'none';
-        if (user.email === 'admin@example.com') {
-          document.getElementById('admin-orders-btn').style.display = 'inline-block';
+        try {
+          const roleDoc = await getDoc(doc(db, "roles", user.email));
+          if (roleDoc.exists() && roleDoc.data().role === "admin") {
+            document.getElementById('admin-orders-btn').style.display = 'inline-block';
+          }
+        } catch (error) {
+          console.error("Role check failed:", error);
         }
       } else {
         currentUser = null;
@@ -211,7 +203,6 @@
     window.onload = () => {
       updateCartCount();
       showProducts();
-      document.getElementById('auth-section').style.display = 'block';
     };
   </script>
 </body>
