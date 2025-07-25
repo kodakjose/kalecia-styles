@@ -1,4 +1,3 @@
-<!-- Updated HTML with Firestore Admin Authentication -->
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -15,10 +14,12 @@
     nav { background-color: #333; color: #fff; padding: 10px; text-align: center; }
     nav button { margin: 0 5px; padding: 8px 12px; background: #f7c948; border: none; cursor: pointer; }
     .container { padding: 20px; }
-    .profile-section, .product-section, .cart-section, .checkout-section, .orders-section { margin: 20px 0; padding: 20px; border: 1px solid #ccc; max-width: 800px; }
-    .products-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 20px; }
-    .product-card { border: 1px solid #ccc; padding: 10px; text-align: center; }
     .product-card img { width: 100%; height: 150px; object-fit: cover; }
+    .product-card { border: 1px solid #ccc; padding: 10px; text-align: center; }
+    .product-card h4, .product-card p { margin: 10px 0; }
+    .product-card button { padding: 6px 12px; background-color: #28a745; color: white; border: none; cursor: pointer; }
+    .cart-section, .orders-section, .product-section { margin: 20px 0; padding: 20px; border: 1px solid #ccc; max-width: 800px; }
+    .products-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 20px; }
     .cart-item { display: flex; justify-content: space-between; padding: 8px 0; border-bottom: 1px solid #ddd; }
     .cart-total { font-weight: bold; text-align: right; margin-top: 10px; }
     .checkout-button { padding: 10px 20px; background-color: #007bff; color: white; border: none; cursor: pointer; margin-top: 10px; }
@@ -44,20 +45,15 @@
   <div class="container">
     <section id="products-section" class="product-section">
       <h2>Shop Products</h2>
-      <div class="products-grid" id="product-list">
-        <div class="product-card">
-          <img src="https://via.placeholder.com/200x150?text=Product+1" alt="Product 1">
-          <h4>Stylish Sneakers</h4>
-          <p>$39.99</p>
-          <button onclick="addToCart({ name: 'Stylish Sneakers', price: 39.99 })">Add to Cart</button>
-        </div>
-        <div class="product-card">
-          <img src="https://via.placeholder.com/200x150?text=Product+2" alt="Product 2">
-          <h4>Men’s Running Shoes</h4>
-          <p>$45.00</p>
-          <button onclick="addToCart({ name: 'Men’s Running Shoes', price: 45.00 })">Add to Cart</button>
-        </div>
-      </div>
+      <div class="products-grid" id="product-list"></div>
+    </section>
+
+    <section id="upload-section" class="product-section" style="display: none;">
+      <h2>Upload New Product</h2>
+      <input type="text" id="product-name" placeholder="Product Name" /><br><br>
+      <input type="number" id="product-price" placeholder="Product Price" /><br><br>
+      <input type="file" id="product-image" /><br><br>
+      <button onclick="uploadProduct()">Upload Product</button>
     </section>
 
     <section id="cart-section" class="cart-section" style="display: none;">
@@ -77,6 +73,7 @@
     import { initializeApp } from "https://www.gstatic.com/firebasejs/9.6.1/firebase-app.js";
     import { getAuth, createUserWithEmailAndPassword, signInWithEmailAndPassword, signOut, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/9.6.1/firebase-auth.js";
     import { getFirestore, collection, addDoc, getDocs, serverTimestamp, query, orderBy, doc, getDoc } from "https://www.gstatic.com/firebasejs/9.6.1/firebase-firestore.js";
+    import { getStorage, ref, uploadBytes, getDownloadURL } from "https://www.gstatic.com/firebasejs/9.6.1/firebase-storage.js";
 
     const firebaseConfig = {
       apiKey: "AIzaSyA8ZFMWYXosLhPP6gvvD0JG9EV_dfC7zmw",
@@ -90,6 +87,7 @@
     const app = initializeApp(firebaseConfig);
     const auth = getAuth();
     const db = getFirestore(app);
+    const storage = getStorage(app);
     let cart = JSON.parse(localStorage.getItem('cart')) || [];
     let currentUser = null;
 
@@ -161,6 +159,52 @@
       });
     }
 
+    async function uploadProduct() {
+      const name = document.getElementById("product-name").value.trim();
+      const price = parseFloat(document.getElementById("product-price").value);
+      const imageFile = document.getElementById("product-image").files[0];
+
+      if (!name || !price || !imageFile) {
+        alert("Please fill in all fields.");
+        return;
+      }
+
+      const storageRef = ref(storage, `products/${Date.now()}-${imageFile.name}`);
+      await uploadBytes(storageRef, imageFile);
+      const imageUrl = await getDownloadURL(storageRef);
+
+      await addDoc(collection(db, "products"), {
+        name,
+        price,
+        imageUrl,
+        timestamp: serverTimestamp()
+      });
+
+      alert("Product uploaded!");
+      document.getElementById("product-name").value = "";
+      document.getElementById("product-price").value = "";
+      document.getElementById("product-image").value = "";
+      loadProducts(); // Refresh product list
+    }
+
+    async function loadProducts() {
+      const container = document.getElementById("product-list");
+      container.innerHTML = "";
+      const snapshot = await getDocs(collection(db, "products"));
+      snapshot.forEach(doc => {
+        const data = doc.data();
+        const div = document.createElement("div");
+        div.className = "product-card";
+        div.innerHTML = `
+          <img src="${data.imageUrl}" alt="${data.name}">
+          <h4>${data.name}</h4>
+          <p>$${data.price.toFixed(2)}</p>
+          <button onclick='addToCart({ name: "${data.name}", price: ${data.price} })'>Add to Cart</button>
+        `;
+        container.appendChild(div);
+      });
+    }
+
     function register() {
       const email = document.getElementById('email').value;
       const pass = document.getElementById('password').value;
@@ -189,6 +233,7 @@
           const roleDoc = await getDoc(doc(db, "roles", user.email));
           if (roleDoc.exists() && roleDoc.data().role === "admin") {
             document.getElementById('admin-orders-btn').style.display = 'inline-block';
+            document.getElementById('upload-section').style.display = 'block';
           }
         } catch (error) {
           console.error("Role check failed:", error);
@@ -197,12 +242,14 @@
         currentUser = null;
         document.getElementById('auth-section').style.display = 'block';
         document.getElementById('admin-orders-btn').style.display = 'none';
+        document.getElementById('upload-section').style.display = 'none';
       }
     });
 
     window.onload = () => {
       updateCartCount();
       showProducts();
+      loadProducts();
     };
   </script>
 </body>
