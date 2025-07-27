@@ -1,0 +1,59 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Kalecia Styles</title>
+  <link rel="stylesheet" href="style.css">
+  <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-app.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-auth.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-firestore.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-storage.js"></script>
+</head>
+<body>
+  <header>Kalecia Styles</header>
+  <nav>
+    <button onclick="showProducts()">Shop</button>
+    <button onclick="showCart()">Cart (<span id="cart-count">0</span>)</button>
+    <button id="admin-orders-btn" style="display:none" onclick="showOrders()">Orders</button>
+  </nav>
+
+  <div id="auth-section" style="padding: 20px;">
+    <h3>Login or Register</h3>
+    <input type="email" id="email" placeholder="Email" /><br><br>
+    <input type="password" id="password" placeholder="Password" /><br><br>
+    <button onclick="register()">Register</button>
+    <button onclick="login()">Login</button>
+    <button onclick="logout()">Logout</button>
+  </div>
+
+  <div class="container">
+    <section id="products-section" class="product-section">
+      <h2>Shop Products</h2>
+      <div class="products-grid" id="product-list"></div>
+    </section>
+
+    <section id="upload-section" style="display: none;">
+      <h2>Upload New Product</h2>
+      <input type="text" id="product-name" placeholder="Product Name" /><br><br>
+      <input type="number" id="product-price" placeholder="Product Price" /><br><br>
+      <input type="file" id="product-image" /><br><br>
+      <button onclick="uploadProduct()">Upload Product</button>
+    </section>
+
+    <section id="cart-section" style="display: none;">
+      <h2>Your Cart</h2>
+      <div id="cart-items"></div>
+      <div class="cart-total">Total: $<span id="cart-total">0.00</span></div>
+      <button class="checkout-button" onclick="checkout()">Place Order</button>
+    </section>
+
+    <section id="orders-section" style="display: none;">
+      <h2>Customer Orders</h2>
+      <div id="orders-list"></div>
+    </section>
+  </div>
+
+  <script type="module" src="app.js"></script>
+</body>
+</html>
