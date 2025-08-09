@@ -1,0 +1,41 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Admin Panel - Kalecia Styles</title>
+  <link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+  <header>
+    <h1>Admin Panel</h1>
+  </header>
+  
+  <main>
+    <section id="login-section">
+      <h2>Login</h2>
+      <input type="email" id="email" placeholder="Email">
+      <input type="password" id="password" placeholder="Password">
+      <button id="login-btn">Login</button>
+    </section>
+
+    <section id="product-section" style="display:none;">
+      <h2>Manage Products</h2>
+      <input type="text" id="product-name" placeholder="Product Name">
+      <input type="text" id="product-price" placeholder="Price">
+      <input type="text" id="product-image" placeholder="Image URL">
+      <button id="add-product-btn">Add Product</button>
+      <div id="product-list-admin"></div>
+    </section>
+
+    <section id="settings-section" style="display:none;">
+      <h2>Site Settings</h2>
+      <input type="text" id="site-name" placeholder="Business Name">
+      <button id="update-site-btn">Update Name</button>
+    </section>
+  </main>
+
+  <script type="module" src="firebase-config.js"></script>
+  <script type="module" src="admin.js"></script>
+</body>
+</html>
